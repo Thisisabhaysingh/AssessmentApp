@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{color-scheme: light;}
+
+/* Light mode styles */
+body{ @apply bg-slate-50 text-slate-800; }
+
+/* Dark mode styles */
+.dark{ color-scheme: dark; }
+.dark body{ @apply bg-slate-900 text-slate-100; }
+.dark .container-card{ @apply bg-slate-800 border-slate-700 text-slate-100; }
+.dark .sidebar{ @apply bg-slate-800 border-slate-700; }
+.dark .sidebar-link{ @apply hover:bg-slate-700; }
+.dark input, .dark select, .dark textarea{ @apply bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400; }
+.dark table thead{ @apply border-slate-700; }
+.dark table tbody tr{ @apply border-slate-800; }
+.dark table thead th{ @apply text-slate-300; }
+.dark table tbody td{ @apply text-slate-200; }
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6{ @apply text-slate-100; }
+.dark p{ @apply text-slate-300; }
+.dark .text-slate-500{ @apply text-slate-400; }
+.dark .text-slate-600{ @apply text-slate-300; }
+.dark .text-slate-700{ @apply text-slate-200; }
+.dark button{ @apply text-slate-200; }
+
+/* Common styles */
+.container-card{ @apply bg-card rounded-xl shadow-soft border border-slate-100; }
+.badge{ @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
+.badge-green{ @apply badge bg-green-100 text-green-700; }
+.badge-yellow{ @apply badge bg-yellow-100 text-yellow-700; }
+.badge-red{ @apply badge bg-red-100 text-red-700; }
+.badge-blue{ @apply badge bg-blue-100 text-blue-700; }
+.dark .badge-green{ @apply bg-green-900/30 text-green-400 border border-green-700/30; }
+.dark .badge-yellow{ @apply bg-yellow-900/30 text-yellow-400 border border-yellow-700/30; }
+.dark .badge-red{ @apply bg-red-900/30 text-red-400 border border-red-700/30; }
+.dark .badge-blue{ @apply bg-blue-900/30 text-blue-400 border border-blue-700/30; }
+.sidebar-link{ @apply flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-200 transition-colors; }
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Animation delays for blob animations */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}

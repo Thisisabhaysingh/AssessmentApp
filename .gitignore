@@ -1,0 +1,57 @@
+# =====================
+# ENV FILES (ALL)
+# =====================
+.env
+.env.*
+*.env
+
+# =====================
+# Dependencies
+# =====================
+node_modules/
+
+# =====================
+# Build outputs
+# =====================
+dist/
+build/
+
+# =====================
+# Logs
+# =====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# =====================
+# Editor / OS
+# =====================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =====================
+# Cache
+# =====================
+.eslintcache
+.vite/
+
+# =====================
+# Coverage
+# =====================
+coverage/
+
+# =====================
+# Runtime / temp
+# =====================
+uploads/
+tmp/
+
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/dist/

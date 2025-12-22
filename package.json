@@ -1,0 +1,25 @@
+{
+  "name": "automation-assessment-web-app",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run -w backend dev\" \"npm run -w frontend dev\"",
+    "dev:backend": "npm run -w backend dev",
+    "dev:frontend": "npm run -w frontend dev",
+    "build": "npm run -w backend build && npm run -w frontend build",
+    "start": "npm run -w backend start && npm run -w frontend start",
+    "lint": "npm run -w frontend lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.9",
+    "path": "^0.12.7"
+  }
+}

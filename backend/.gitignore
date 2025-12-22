@@ -1,0 +1,61 @@
+# =====================
+# ENV FILES (EXCLUDE ALL)
+# =====================
+.env
+.env.*
+*.env
+
+# =====================
+# Dependencies
+# =====================
+node_modules/
+
+# =====================
+# Logs
+# =====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# =====================
+# Build / Runtime
+# =====================
+dist/
+build/
+tmp/
+uploads/
+
+# =====================
+# Database / Local files
+# =====================
+*.db
+*.sqlite
+*.sqlite3
+
+# =====================
+# Coverage
+# =====================
+coverage/
+
+# =====================
+# Process files
+# =====================
+pids/
+*.pid
+*.pid.lock
+*.seed
+
+# =====================
+# Cache
+# =====================
+.eslintcache
+
+# =====================
+# Editor / OS
+# =====================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
