@@ -9,6 +9,9 @@
 # Dependencies
 # =====================
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # =====================
 # Build outputs
@@ -24,6 +27,7 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # =====================
 # Editor / OS
@@ -32,24 +36,73 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # =====================
 # Cache
 # =====================
 .eslintcache
 .vite/
+.cache/
+.parcel-cache/
 
 # =====================
 # Coverage
 # =====================
 coverage/
+*.lcov
 
 # =====================
 # Runtime / temp
 # =====================
 uploads/
 tmp/
+.temp/
 
+# =====================
+# Next.js specific
+# =====================
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# =====================
+# Backend specific
+# =====================
+backend/dist/
+backend/uploads/
+backend/logs/
+
+# =====================
+# Database
+# =====================
+*.sqlite
+*.sqlite3
+*.db
+
+# =====================
+# Migration scripts (temporary)
+# =====================
+migration_commands.sql
+database_migration.sql
+
+# =====================
+# Tunnel and deployment scripts
+# =====================
+start-tunnels.ps1
+*.tunnel
+
+# =====================
+# Test files
+# =====================
+test-results/
+playwright-report/
+test-results.xml
 
 # Build outputs
 frontend/.next/

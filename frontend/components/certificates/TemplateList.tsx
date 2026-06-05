@@ -6,7 +6,7 @@ import { CertificateTemplate } from '@/types/certificate';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Edit, Star, FileImage } from 'lucide-react';
+import { Plus, Trash2, Edit, Star, FileImage, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import certificateApi from '@/lib/api/certificates';
@@ -72,17 +72,38 @@ export function TemplateList({ onSelect, showActions = true }: TemplateListProps
 
   const handleSetDefault = async (id: number) => {
     try {
+      console.log('🎯 Setting default template to ID:', id);
       await certificateApi.setDefaultTemplate(id);
+      console.log('✅ API call successful, updating local state');
       setTemplates(prev => 
         prev.map(template => ({
           ...template,
           isDefault: template.id === id
         }))
       );
+      console.log('🔄 Local state updated, triggering parent refresh');
       toast.success('Default template updated');
+      
+      // Trigger parent refresh by calling window.parent.fetchTemplates if available
+      if (typeof window !== 'undefined' && (window as any).fetchTemplates) {
+        (window as any).fetchTemplates();
+      }
     } catch (error) {
-      console.error('Error setting default template:', error);
+      console.error('❌ Error setting default template:', error);
       toast.error('Failed to set default template');
+    }
+  };
+
+  const handlePreview = async (template: CertificateTemplate) => {
+    try {
+      // Create a new window to preview the template
+      // Use full backend URL with port 4000
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
+      const previewUrl = `${apiBase}/certificates/template-preview/${template.id}`;
+      window.open(previewUrl, '_blank', 'width=800,height=600');
+    } catch (error) {
+      console.error('Error previewing template:', error);
+      toast.error('Failed to preview template');
     }
   };
 
@@ -169,13 +190,24 @@ export function TemplateList({ onSelect, showActions = true }: TemplateListProps
               {(showActions || onSelect) && (
                 <CardFooter className="flex justify-between p-4 pt-0">
                   {onSelect ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSelect(template)}
-                    >
-                      Select
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePreview(template)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </Button>
+                      <Button
+                        variant={template.isDefault ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => !template.isDefault && handleSetDefault(template.id)}
+                        disabled={template.isDefault}
+                      >
+                        {template.isDefault ? 'Default' : 'Set Default'}
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-x-2">
                       <Button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +30,21 @@ export default function NewTemplatePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [existingTemplates, setExistingTemplates] = useState<string[]>([]);
+
+  // Fetch existing templates on component mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const templates = await certificateApi.getTemplates();
+        const templateNames = templates.map((t: any) => t.name);
+        setExistingTemplates(templateNames);
+      } catch (error) {
+        console.error('Failed to fetch templates:', error);
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const form = useForm<CreateTemplateFormValues>({
     resolver: zodResolver(createTemplateSchema),
@@ -58,11 +73,38 @@ export default function NewTemplatePage() {
       return;
     }
 
+    // Check for duplicate template name
+    console.log('🔍 Checking for duplicate name:', data.name.trim());
+    console.log('🔍 Existing templates:', existingTemplates);
+    
+    if (existingTemplates.includes(data.name.trim())) {
+      console.log('❌ Duplicate found:', data.name.trim());
+      toast.error('A template with this name already exists. Please choose a different name.');
+      return;
+    }
+
+    // Double-check by fetching fresh templates
+    try {
+      const freshTemplates = await certificateApi.getTemplates();
+      const freshNames = freshTemplates.map((t: any) => t.name);
+      console.log('🔍 Fresh template names from server:', freshNames);
+      
+      if (freshNames.includes(data.name.trim())) {
+        console.log('❌ Duplicate found on fresh check:', data.name.trim());
+        toast.error('A template with this name already exists. Please choose a different name.');
+        // Update the local state with fresh data
+        setExistingTemplates(freshNames);
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to fetch fresh templates:', error);
+    }
+
     try {
       setIsLoading(true);
 
       const formData = new FormData();
-      formData.append('name', data.name);
+      formData.append('name', data.name.trim());
       formData.append('description', data.description || '');
       formData.append('isDefault', data.isDefault.toString());
       formData.append('fields', data.fields || '');
@@ -71,6 +113,12 @@ export default function NewTemplatePage() {
       formData.append('templateFile', templateFile);
       if (thumbnailFile) {
         formData.append('thumbnail', thumbnailFile);
+      }
+
+      // Debug: Log FormData contents
+      console.log('🔍 FormData contents being sent:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value instanceof File ? `${value.name} (${value.size} bytes)` : value);
       }
 
       await certificateApi.createTemplate(formData);
@@ -124,6 +172,9 @@ export default function NewTemplatePage() {
                     <FormControl>
                       <Input placeholder="Enter template name" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Choose a unique name for your template. Existing templates: {existingTemplates.length > 0 ? existingTemplates.join(', ') : 'None'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -184,7 +235,7 @@ export default function NewTemplatePage() {
                     <FileText className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Upload your certificate template file (PDF, HTML, or text format)
+                    Upload your certificate template file (PDF, Word, HTML, text, or image format)
                   </p>
                   {templateFile && (
                     <p className="text-sm text-green-600">

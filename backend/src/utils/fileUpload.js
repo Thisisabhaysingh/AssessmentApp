@@ -43,22 +43,53 @@ const fileFilter = (req, file, cb) => {
     size: file.size
   });
 
-  // Check file types
-  const allowedTypes = [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/jpg',
-    'image/gif',
-    'image/svg+xml'
-  ];
+  // Check file types based on field name
+  let allowedTypes = [];
+  
+  if (file.fieldname === 'templateFile') {
+    // Certificate templates can be documents, PDF, or images
+    allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain',
+      'text/html',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'image/gif',
+      'image/svg+xml'
+    ];
+  } else if (file.fieldname === 'thumbnail') {
+    // Thumbnails are images only
+    allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'image/gif',
+      'image/svg+xml'
+    ];
+  } else {
+    // Default: PDF and images
+    allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'image/gif',
+      'image/svg+xml'
+    ];
+  }
 
   if (allowedTypes.includes(file.mimetype)) {
     console.log(`✅ File type allowed: ${file.mimetype}`);
     cb(null, true);
   } else {
     console.log(`❌ File type rejected: ${file.mimetype}`);
-    cb(new Error('Invalid file type. Only PDF and images are allowed.'), false);
+    const fileType = file.fieldname === 'templateFile' ? 
+      'PDF, Word documents, HTML, text files, and images are allowed for templates.' :
+      'Only images are allowed for thumbnails.';
+    cb(new Error(`Invalid file type. ${fileType}`), false);
   }
 };
 

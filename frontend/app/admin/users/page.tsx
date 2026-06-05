@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import StatCard from '@/components/StatCard'
 import Modal from '@/components/Modal'
 import Toast from '@/components/Toast'
-import { Users, UserCheck, UserPlus, Filter, Plus, Search, Edit, Trash2 } from 'lucide-react'
+import { Users, UserCheck, UserPlus, Filter, Plus, Search, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { api } from '@/lib/api'
 
 export default function UserManagement() {
@@ -43,7 +43,16 @@ export default function UserManagement() {
   const loadUsers = async () => {
     try {
       const result: any = await api.admin.getUsers()
-      setUsers(result.data.users)
+      const users = result.data.users || []
+      
+      // Ensure trainer level data is available
+      const usersWithLevels = users.map(user => ({
+        ...user,
+        trainerLevel: user.trainerLevel || 'L0',
+        levelAchievedDate: user.levelAchievedDate || null
+      }))
+      
+      setUsers(usersWithLevels)
     } catch (error) {
       console.error('Failed to load users:', error)
     }
@@ -100,6 +109,20 @@ export default function UserManagement() {
     }
   }
 
+  const handleToggleStatus = async (user: any) => {
+    try {
+      const newStatus = user.status === 'active' ? 'inactive' : 'active'
+      await api.admin.updateUser(user.id, { status: newStatus })
+      setToast({ 
+        message: `User ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`, 
+        type: 'success' 
+      })
+      loadUsers()
+    } catch (error: any) {
+      setToast({ message: error.message || 'Failed to update user status', type: 'error' })
+    }
+  }
+
   const openDeleteConfirm = (user: any) => {
     setUserToDelete(user)
     setShowDeleteConfirm(true)
@@ -127,6 +150,7 @@ export default function UserManagement() {
             <option value="all">All Roles</option>
             <option value="admin">Admin</option>
             <option value="manager">Manager</option>
+            <option value="school_ops_manager">School Ops Manager</option>
             <option value="trainer">Trainer</option>
           </select>
           <button 
@@ -142,7 +166,7 @@ export default function UserManagement() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard title="Total Users" value={users.length} icon={Users} color="text-blue-600" />
-        <StatCard title="Active Users" value={users.filter(u => u.role !== 'inactive').length} icon={UserCheck} color="text-green-600" />
+        <StatCard title="Active Users" value={users.filter(u => u.status === 'active').length} icon={UserCheck} color="text-green-600" />
         <StatCard title="Trainers" value={users.filter(u => u.role === 'trainer').length} icon={UserPlus} color="text-blue-600" />
         <StatCard title="Managers" value={users.filter(u => u.role === 'manager').length} icon={UserPlus} color="text-purple-600" />
       </div>
@@ -169,6 +193,7 @@ export default function UserManagement() {
                 <th className="pb-3 font-medium text-slate-600">Name</th>
                 <th className="pb-3 font-medium text-slate-600">Email</th>
                 <th className="pb-3 font-medium text-slate-600">Role</th>
+                <th className="pb-3 font-medium text-slate-600">Trainer Level</th>
                 <th className="pb-3 font-medium text-slate-600">Status</th>
                 <th className="pb-3 font-medium text-slate-600">Last Login</th>
                 <th className="pb-3 font-medium text-slate-600">Actions</th>
@@ -177,7 +202,7 @@ export default function UserManagement() {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-500">
                     No users found matching your search
                   </td>
                 </tr>
@@ -189,17 +214,53 @@ export default function UserManagement() {
                   <td className="py-3">
                     {user.role === 'trainer' && <span className="badge bg-blue-100 text-blue-700">trainer</span>}
                     {user.role === 'manager' && <span className="badge bg-purple-100 text-purple-700">manager</span>}
+                    {user.role === 'school_ops_manager' && <span className="badge bg-orange-100 text-orange-700">school ops manager</span>}
                     {user.role === 'admin' && <span className="badge-red">admin</span>}
                   </td>
                   <td className="py-3">
+                    {user.role === 'trainer' ? (
+                      <span className={`badge ${
+                        user.trainerLevel === 'L3' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        user.trainerLevel === 'L2' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                        user.trainerLevel === 'L1' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                      }`}>
+                        {user.trainerLevel || 'L0'}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 dark:text-slate-500">-</span>
+                    )}
+                  </td>
+                  <td className="py-3">
                     {user.status === 'active' ? (
-                      <span className="badge-green bg-slate-700">active</span>
+                      <span className="badge-green">active</span>
                     ) : (
                       <span className="badge bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-100">inactive</span>
                     )}
                   </td>
-                  <td className="py-3 text-slate-600">{user.lastLogin}</td>
+                  <td className="py-3 text-slate-600">
+                    {user.lastLogin === 'Never' ? (
+                      <span className="text-slate-400">Never</span>
+                    ) : (
+                      user.lastLogin
+                    )}
+                  </td>
                   <td className="py-3 space-x-2">
+                    <button 
+                      onClick={() => handleToggleStatus(user)}
+                      className={`p-1 rounded transition-colors ${
+                        user.status === 'active' 
+                          ? 'hover:bg-orange-50 dark:hover:bg-orange-900/20' 
+                          : 'hover:bg-green-50 dark:hover:bg-green-900/20'
+                      }`}
+                      title={user.status === 'active' ? 'Deactivate user' : 'Activate user'}
+                    >
+                      {user.status === 'active' ? (
+                        <ToggleRight className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                      ) : (
+                        <ToggleLeft className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      )}
+                    </button>
                     <button 
                       onClick={() => handleEdit(user)}
                       className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
@@ -269,6 +330,7 @@ export default function UserManagement() {
             >
               <option value="trainer">Trainer</option>
               <option value="manager">Manager</option>
+              <option value="school_ops_manager">School Ops Manager</option>
               <option value="admin">Admin</option>
             </select>
           </div>

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import certificateApi from '@/lib/api/certificates';
 import userApi from '@/lib/api/users';
+import Modal from '@/components/Modal';
 import {
   Table,
   TableBody,
@@ -34,6 +35,9 @@ export default function AdminCertificatesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [users, setUsers] = useState<{id: number, name: string}[]>([]);
   const [selectedCertificates, setSelectedCertificates] = useState<number[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [certificateToDelete, setCertificateToDelete] = useState<{id: number, number: string} | null>(null);
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -106,17 +110,33 @@ export default function AdminCertificatesPage() {
   };
 
   const handleSingleDelete = async (certificateId: number, certificateNumber: string) => {
-    if (!confirm(`Are you sure you want to delete certificate ${certificateNumber}? This action cannot be undone.`)) {
-      return;
-    }
+    setCertificateToDelete({ id: certificateId, number: certificateNumber });
+    setIsBulkDelete(false);
+    setShowDeleteConfirm(true);
+  };
 
+  const handleBulkDelete = async () => {
+    if (selectedCertificates.length === 0) return;
+    setIsBulkDelete(true);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await certificateApi.deleteCertificate(certificateId);
-      toast.success('Certificate deleted successfully');
+      if (isBulkDelete && selectedCertificates.length > 0) {
+        await certificateApi.bulkDeleteCertificates(selectedCertificates);
+        toast.success(`Successfully deleted ${selectedCertificates.length} certificate(s)`);
+        setSelectedCertificates([]);
+      } else if (certificateToDelete) {
+        await certificateApi.deleteCertificate(certificateToDelete.id);
+        toast.success('Certificate deleted successfully');
+      }
       fetchCertificates();
+      setShowDeleteConfirm(false);
+      setCertificateToDelete(null);
     } catch (error) {
-      console.error('Error deleting certificate:', error);
-      toast.error('Failed to delete certificate');
+      toast.error('Failed to delete certificate(s)');
+      console.error('Delete error:', error);
     }
   };
 
@@ -139,28 +159,10 @@ export default function AdminCertificatesPage() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedCertificates.length === 0) return;
-
-    if (!confirm(`Are you sure you want to delete ${selectedCertificates.length} selected certificate(s)? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await certificateApi.bulkDeleteCertificates(selectedCertificates);
-      toast.success(`Successfully deleted ${selectedCertificates.length} certificate(s)`);
-      setSelectedCertificates([]);
-      fetchCertificates();
-    } catch (error) {
-      console.error('Error deleting certificates:', error);
-      toast.error('Failed to delete certificates');
-    }
-  };
-
   const toggleCertificateSelection = (certificateId: number) => {
     setSelectedCertificates(prev => 
       prev.includes(certificateId)
-        ? prev.filter(id => id !== certificateId)
+        ? prev.filter((id: number) => id !== certificateId)
         : [...prev, certificateId]
     );
   };
@@ -169,7 +171,7 @@ export default function AdminCertificatesPage() {
     if (selectedCertificates.length === certificates.length) {
       setSelectedCertificates([]);
     } else {
-      setSelectedCertificates(certificates.map(c => c.id));
+      setSelectedCertificates(certificates.map((c: Certificate) => c.id));
     }
   };
 
@@ -447,6 +449,45 @@ export default function AdminCertificatesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        isOpen={showDeleteConfirm} 
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setCertificateToDelete(null);
+          setIsBulkDelete(false);
+        }}
+        title="Confirm Deletion"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700 dark:text-gray-300">
+            {isBulkDelete 
+              ? `Are you sure you want to delete ${selectedCertificates.length} selected certificate(s)? This action cannot be undone.`
+              : `Are you sure you want to delete certificate ${certificateToDelete?.number}? This action cannot be undone.`
+            }
+          </p>
+          
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setCertificateToDelete(null);
+                setIsBulkDelete(false);
+              }}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

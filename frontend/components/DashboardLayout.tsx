@@ -7,7 +7,7 @@ import { Moon, Sun, LogOut } from 'lucide-react'
 import { api } from '@/lib/api'
 
 interface DashboardLayoutProps {
-  role: 'trainer' | 'manager' | 'admin'
+  role: 'trainer' | 'manager' | 'school-ops-manager' | 'admin'
   children: ReactNode
 }
 
@@ -26,7 +26,15 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         return
       }
       if (currentUser.role !== role) {
-        router.push(`/${currentUser.role}`)
+        // Convert role names to route paths
+        const roleToRoute: Record<string, string> = {
+          'school_ops_manager': 'school-ops-manager',
+          'admin': 'admin',
+          'manager': 'manager',
+          'trainer': 'trainer'
+        }
+        const targetRoute = roleToRoute[currentUser.role] || currentUser.role
+        router.push(`/${targetRoute}`)
         return
       }
       setUser(currentUser)

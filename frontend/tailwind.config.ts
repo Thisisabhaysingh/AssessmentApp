@@ -14,7 +14,10 @@ const config: Config = {
           foreground: '#ffffff',
         },
         sidebar: '#f8fafc',
-        card: '#ffffff',
+        card: {
+          DEFAULT: '#ffffff',
+          dark: '#1e293b',
+        },
       },
       boxShadow: {
         soft: '0 2px 10px rgba(0,0,0,0.05)'

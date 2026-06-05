@@ -5,30 +5,22 @@ export const certificateApi = {
   // Certificate Templates
   getTemplates: async (): Promise<CertificateTemplate[]> => {
     const response: any = await api.get('/certificates/templates');
-    return response.templates || [];
+    return response.data?.templates || [];
   },
 
   getTemplate: async (id: number): Promise<CertificateTemplate> => {
     const response: any = await api.get(`/certificates/templates/${id}`);
-    return response.template;
+    return response.data?.template;
   },
 
   createTemplate: async (data: FormData): Promise<CertificateTemplate> => {
-    const response: any = await api.post('/certificates/templates', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    return response.template;
+    const response: any = await api.post('/certificates/templates', data);
+    return response.data?.template;
   },
 
   updateTemplate: async (id: number, data: FormData): Promise<CertificateTemplate> => {
-    const response: any = await api.put(`/certificates/templates/${id}`, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    return response.template;
+    const response: any = await api.put(`/certificates/templates/${id}`, data);
+    return response.data?.template;
   },
 
   deleteTemplate: async (id: number): Promise<void> => {

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Download } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import certificateApi from '@/lib/api/certificates';
 import {TemplateList} from '@/components/certificates/TemplateList';
@@ -24,7 +25,11 @@ export default function AdminCertificateTemplatesPage() {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
+      console.log('📄 Fetching templates...');
       const data = await certificateApi.getTemplates();
+      console.log('📄 Templates fetched:', data);
+      const defaultTemplate = data.find(t => t.isDefault);
+      console.log('🎯 Current default template:', defaultTemplate);
       setTemplates(data);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -34,45 +39,58 @@ export default function AdminCertificateTemplatesPage() {
     }
   };
 
-  const handleDownloadSample = () => {
-    // Create a sample template file
-    const sampleContent = `CERTIFICATE OF COMPLETION
+  // Make fetchTemplates available to child components
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).fetchTemplates = fetchTemplates;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).fetchTemplates;
+      }
+    };
+  }, [fetchTemplates]);
 
-This is to certify that
+  const handleDownloadSample = async () => {
+    try {
+      // Find the default template
+      const defaultTemplate = templates.find(t => t.isDefault);
+      
+      if (!defaultTemplate) {
+        toast.error('No default template found');
+        return;
+      }
 
-[RECIPIENT_NAME]
-
-has successfully completed the course
-
-[COURSE_NAME]
-
-Certificate Number: [CERTIFICATE_NUMBER]
-Issue Date: [ISSUE_DATE]
-Expiry Date: [EXPIRY_DATE]
-
-[ORGANIZATION_NAME]
-Quality Assurance Department
-
----
-Note: Replace the placeholders in brackets [PLACEHOLDER] with actual values when generating certificates.
-Available placeholders:
-- [RECIPIENT_NAME] - The full name of the person receiving the certificate
-- [COURSE_NAME] - The name of the completed course
-- [CERTIFICATE_NUMBER] - The unique certificate number
-- [ISSUE_DATE] - The date when the certificate was issued
-- [EXPIRY_DATE] - The expiry date (if applicable)
-- [ORGANIZATION_NAME] - Your organization name`;
-
-    const blob = new Blob([sampleContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sample-certificate-template.txt';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
-    toast.success('Sample template downloaded');
+      // Download the actual default template file
+      // Convert backslashes to forward slashes and remove the uploads prefix
+      const cleanPath = defaultTemplate.templateFile.replace(/\\/g, '/').replace('uploads/', '');
+      const templateUrl = `http://localhost:4000/uploads/${cleanPath}`;
+      
+      // Create download link
+      const response = await fetch(templateUrl);
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Use the original filename
+      const originalFileName = defaultTemplate.templateFile.split('\\').pop() || 'default-template.docx';
+      a.download = originalFileName;
+      
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      toast.success('Default template downloaded');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast.error('Failed to download template');
+    }
   };
 
   const handleTemplateSelect = (template: CertificateTemplate) => {
@@ -90,13 +108,33 @@ Available placeholders:
   return (
     <div className="space-y-6 p-5">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Certificate Templates</h1>
-          <p className="text-muted-foreground">
-            Manage certificate templates for your organization
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/admin/certificates')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Certificates
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Certificate Templates</h1>
+            <p className="text-muted-foreground">
+              Manage certificate templates for your organization
+            </p>
+          </div>
         </div>
         <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              console.log('🔄 Refresh button clicked!');
+              fetchTemplates();
+            }}
+          >
+            🔄 Refresh
+          </Button>
           <Button
             variant="outline"
             onClick={handleDownloadSample}

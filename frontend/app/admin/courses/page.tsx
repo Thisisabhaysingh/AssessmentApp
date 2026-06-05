@@ -1,12 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import Modal from '@/components/Modal'
 import Toast from '@/components/Toast'
-import { BookOpen, Users, Clock, Plus, Edit, Trash2, Search } from 'lucide-react'
+import { BookOpen, Users, Clock, Plus, Edit, Trash2, Search, Eye } from 'lucide-react'
 import { api } from '@/lib/api'
 
 export default function CourseManagement() {
+  const router = useRouter()
   const [courses, setCourses] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [levelFilter, setLevelFilter] = useState('all')
@@ -136,10 +138,9 @@ export default function CourseManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard title="Total Courses" value={courses.length} icon={BookOpen} color="text-blue-600" />
         <StatCard title="Active Courses" value={courses.length} icon={BookOpen} color="text-green-600" />
-        <StatCard title="Total Enrollments" value={0} icon={Users} color="text-purple-600" />
         <StatCard title="Avg Duration" value="-" icon={Clock} color="text-orange-600" />
       </div>
 
@@ -150,15 +151,15 @@ export default function CourseManagement() {
           <p className="text-sm text-slate-600">Showing {filteredCourses.length} of {courses.length} courses</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead className="border-b border-slate-200">
               <tr className="text-left">
-                <th className="pb-3 font-medium text-slate-600">Course Name</th>
-                <th className="pb-3 font-medium text-slate-600">Description</th>
-                <th className="pb-3 font-medium text-slate-600">Level</th>
-                <th className="pb-3 font-medium text-slate-600">Enrollments</th>
-                <th className="pb-3 font-medium text-slate-600">Status</th>
-                <th className="pb-3 font-medium text-slate-600">Actions</th>
+                <th className="pb-3 font-medium text-slate-600 w-56 text-left">Course Name</th>
+                <th className="pb-3 font-medium text-slate-600 w-80 text-left">Description</th>
+                <th className="pb-3 font-medium text-slate-600 w-24 text-center">Level</th>
+                <th className="pb-3 font-medium text-slate-600 w-28 text-center">Activities</th>
+                <th className="pb-3 font-medium text-slate-600 w-24 text-center">Status</th>
+                <th className="pb-3 font-medium text-slate-600 w-36 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -171,18 +172,39 @@ export default function CourseManagement() {
               ) : (
                 filteredCourses.map((course) => (
                 <tr key={course.id} className="border-b border-slate-100">
-                  <td className="py-3">📘 {course.name}</td>
-                  <td className="py-3">{course.description || '-'}</td>
                   <td className="py-3">
+                    <div className="truncate" title={course.name}>
+                      📘 {course.name ? (
+                        course.name.length > 40 ? `${course.name.substring(0, 40)}...` : course.name
+                      ) : '-'}
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <div className="truncate" title={course.description || '-'}>
+                      {course.description ? (
+                        course.description.length > 80 ? `${course.description.substring(0, 80)}...` : course.description
+                      ) : '-'}
+                    </div>
+                  </td>
+                  <td className="py-3 text-center">
                     {course.level === 'L1' && <span className="badge-green">L1</span>}
                     {course.level === 'L2' && <span className="badge-yellow">L2</span>}
                     {course.level === 'L3' && <span className="badge-red">L3</span>}
                   </td>
-                  <td className="py-3">-</td>
-                  <td className="py-3">
+                  <td className="py-3 text-center">
+                    <span className="text-blue-600 font-medium">{course.activityCount || 0}</span>
+                  </td>
+                  <td className="py-3 text-center">
                     <span className="badge-green">active</span>
                   </td>
-                  <td className="py-3 space-x-2">
+                  <td className="py-3 text-center space-x-2">
+                    <button 
+                      onClick={() => router.push(`/admin/courses/${course.id}`)}
+                      className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                      title="View course details"
+                    >
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </button>
                     <button 
                       onClick={() => handleEdit(course)}
                       className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"

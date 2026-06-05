@@ -23,6 +23,7 @@ export default function LoginPage() {
       // Redirect based on role
       if (role === 'trainer') router.push('/trainer')
       else if (role === 'manager') router.push('/manager')
+      else if (role === 'school_ops_manager') router.push('/school-ops-manager')
       else if (role === 'admin') router.push('/admin')
     } catch (err: any) {
       setError(err.message || 'Login failed')
@@ -63,6 +64,7 @@ export default function LoginPage() {
                 placeholder="your@email.com"
                 className="w-full px-4 py-3 bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/20 rounded-lg text-slate-700 placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
                 required
+                suppressHydrationWarning
               />
             </div>
 
@@ -75,6 +77,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 className="w-full px-4 py-3 bg-white/20 dark:bg-white/10 backdrop-blur-sm border border-white/30 dark:border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all"
                 required
+                suppressHydrationWarning
               />
             </div>
 
@@ -97,6 +100,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-gradient-to-r from-primary to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              suppressHydrationWarning
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>

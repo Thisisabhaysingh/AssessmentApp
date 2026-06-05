@@ -6,6 +6,99 @@ import { CertificateTemplate } from '../config/db.js';
 import { ok, created, bad, notFound } from '../utils/responseHelper.js';
 import { uploadFile, deleteFile } from '../utils/fileUpload.js';
 
+// Preview template
+export const previewTemplate = async (req, res) => {
+  try {
+    console.log('🔍 Preview template called with ID:', req.params.id);
+    
+    const { id } = req.params;
+    
+    const template = await CertificateTemplate.findByPk(id);
+    console.log('🔍 Found template:', template ? template.name : 'Not found');
+    
+    if (!template) {
+      console.log('❌ Template not found');
+      return notFound(res, 'Template not found');
+    }
+
+    // Read the template file
+    const templatePath = path.join(process.cwd(), template.templateFile);
+    console.log('🔍 Template path:', templatePath);
+    console.log('🔍 File exists:', fs.existsSync(templatePath));
+    
+    if (!fs.existsSync(templatePath)) {
+      console.log('❌ Template file not found');
+      return notFound(res, 'Template file not found');
+    }
+
+    let templateContent = fs.readFileSync(templatePath, 'utf8');
+    console.log('🔍 Template content length:', templateContent.length);
+
+    // Replace placeholders with sample data
+    const sampleData = {
+      recipientName: 'John Doe',
+      courseName: 'Sample Course',
+      issueDate: new Date().toLocaleDateString(),
+      certificateNumber: 'CERT-2024-001',
+      organizationName: 'Sample Organization',
+      trainerLevel: 'L2',
+      totalScore: '95',
+      maxScore: '100',
+      percentage: '95%',
+      grade: 'A',
+      totalAssessments: '20',
+      passingAssessments: '19',
+      achievement: 'Excellence in Training',
+      signatoryName: 'Jane Smith',
+      signatoryTitle: 'Training Manager',
+      completionDate: new Date().toLocaleDateString(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()
+    };
+
+    // Replace common placeholders
+    Object.keys(sampleData).forEach(key => {
+      const placeholder = `{{${key}}}`;
+      templateContent = templateContent.replace(new RegExp(placeholder, 'g'), sampleData[key]);
+    });
+
+    // Determine content type based on file extension
+    const ext = path.extname(template.templateFile).toLowerCase();
+    let contentType = 'text/html';
+    
+    if (ext === '.pdf') {
+      contentType = 'application/pdf';
+    } else if (ext === '.txt') {
+      contentType = 'text/plain';
+    } else if (ext === '.doc' || ext === '.docx') {
+      contentType = 'application/msword';
+    }
+
+    console.log('🔍 Content type:', contentType);
+    console.log('🔍 File extension:', ext);
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="preview-${template.name}${ext}"`);
+    
+    console.log('🔍 Sending preview response...');
+
+    // Send the preview content
+    if (ext === '.pdf') {
+      // For PDF files, read and send as binary
+      const pdfContent = fs.readFileSync(templatePath);
+      res.send(pdfContent);
+    } else {
+      // For text-based files, send the processed content
+      res.send(templateContent);
+    }
+
+    console.log('✅ Preview sent successfully');
+  } catch (error) {
+    console.error('❌ Error previewing template:', error);
+    return bad(res, 'Failed to preview template');
+  }
+};
+
 // Create a new certificate template
 export const createTemplate = async (req, res) => {
   try {
@@ -15,6 +108,15 @@ export const createTemplate = async (req, res) => {
 
     if (!templateFile) {
       return bad(res, 'Template file is required');
+    }
+
+    // Check if template name already exists
+    const existingTemplate = await CertificateTemplate.findOne({
+      where: { name: name.trim() }
+    });
+
+    if (existingTemplate) {
+      return bad(res, 'A template with this name already exists. Please choose a different name.');
     }
 
     // If setting as default, unset current default
@@ -33,7 +135,7 @@ export const createTemplate = async (req, res) => {
 
     // Create template
     const template = await CertificateTemplate.create({
-      name,
+      name: name.trim(),
       description,
       templateFile: templatePath.path,
       thumbnail: thumbnailPath?.path || null,
@@ -44,6 +146,17 @@ export const createTemplate = async (req, res) => {
     return created(res, { template }, 'Certificate template created successfully');
   } catch (error) {
     console.error('Error creating certificate template:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return bad(res, 'A template with this name already exists. Please choose a different name.');
+    }
+    
+    // Handle file upload errors
+    if (error.message.includes('Invalid file type')) {
+      return bad(res, error.message);
+    }
+    
     return bad(res, 'Failed to create certificate template');
   }
 };

@@ -28,6 +28,8 @@ const getSettings = async (req, res) => {
 // Update system settings
 const updateSettings = async (req, res) => {
   try {
+    console.log('🔍 Debug: Raw request body:', JSON.stringify(req.body, null, 2));
+    
     const {
       twoFactorAuth,
       sessionTimeout,
@@ -39,30 +41,72 @@ const updateSettings = async (req, res) => {
       emailNotifications,
       assessmentReminders,
       performanceReports,
-      reportFrequency
+      reportFrequency,
+      passingPercentage,
+      totalMarks,
+      schoolOpsManagerMarks,
+      managerMarks,
+      evaluationCriteria,
+      trainerLevelSettings
     } = req.body;
+    
+    console.log('🔍 Debug: Destructured trainerLevelSettings:', JSON.stringify(trainerLevelSettings, null, 2));
     
     // Get the first (and only) settings record
     let settings = await SystemSettings.findOne();
     
+    // Prepare update object
+    const updateData = {
+      twoFactorAuth,
+      sessionTimeout,
+      passwordMinLength,
+      autoBackup,
+      backupTime,
+      dataRetention,
+      performanceMonitoring,
+      emailNotifications,
+      assessmentReminders,
+      performanceReports,
+      reportFrequency,
+      passingPercentage,
+      totalMarks,
+      schoolOpsManagerMarks,
+      managerMarks,
+      evaluationCriteria,
+      trainerLevelSettings
+    };
+    
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
+    
     // If no settings exist, create new
     if (!settings) {
-      settings = await SystemSettings.create(req.body);
+      console.log('🔍 Debug: Creating new settings with data:', JSON.stringify(updateData, null, 2));
+      settings = await SystemSettings.create(updateData);
+      console.log('🔍 Debug: New settings created:', JSON.stringify(settings.trainerLevelSettings, null, 2));
     } else {
-      // Update existing settings
-      await settings.update({
-        twoFactorAuth,
-        sessionTimeout,
-        passwordMinLength,
-        autoBackup,
-        backupTime,
-        dataRetention,
-        performanceMonitoring,
-        emailNotifications,
-        assessmentReminders,
-        performanceReports,
-        reportFrequency
-      });
+      // Update existing settings - DIRECT DATABASE UPDATE
+      console.log('🔍 Debug: Updating existing settings with data:', JSON.stringify(updateData, null, 2));
+      console.log('🔍 Debug: Current settings before update:', JSON.stringify(settings.trainerLevelSettings, null, 2));
+      
+      // Use direct database update to avoid Sequelize issues
+      const [affectedRows] = await SystemSettings.update(
+        updateData,
+        { 
+          where: { id: settings.id },
+          returning: true 
+        }
+      );
+      
+      console.log('🔍 Debug: Update affected rows:', affectedRows);
+      
+      // Refetch to get updated data
+      settings = await SystemSettings.findOne();
+      console.log('🔍 Debug: Settings after update:', JSON.stringify(settings.trainerLevelSettings, null, 2));
     }
     
     res.json({

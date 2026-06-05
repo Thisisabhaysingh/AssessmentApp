@@ -17,25 +17,25 @@ export const courseApi = {
       }
     }
     const response: any = await api.get(url);
-    return response.courses || [];
+    return response.data?.courses || [];
   },
 
   // Get course by ID
   getCourse: async (id: number): Promise<Course> => {
     const response: any = await api.get(`/admin/courses/${id}`);
-    return response.course;
+    return response.data?.course;
   },
 
   // Create course
   createCourse: async (data: Partial<Course>): Promise<Course> => {
     const response: any = await api.post('/admin/courses', data);
-    return response.course;
+    return response.data?.course;
   },
 
   // Update course
   updateCourse: async (id: number, data: Partial<Course>): Promise<Course> => {
     const response: any = await api.put(`/admin/courses/${id}`, data);
-    return response.course;
+    return response.data?.course;
   },
 
   // Delete course

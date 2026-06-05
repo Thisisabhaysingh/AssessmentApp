@@ -7,7 +7,13 @@ import {
   logout,
   register,
   registerValidators,
-  changePassword
+  changePassword,
+  forgotPassword,
+  forgotPasswordValidators,
+  verifyOTP,
+  verifyOTPValidators,
+  resetPassword,
+  resetPasswordValidators
 } from '../controllers/authController.js';
 
 const router = Router();
@@ -20,5 +26,10 @@ router.post('/logout', authenticate, logout);
 
 // Change password (authenticated)
 router.post('/change-password', authenticate, changePassword);
+
+// Forgot password routes
+router.post('/forgot-password', forgotPasswordValidators, forgotPassword);
+router.post('/verify-otp', verifyOTPValidators, verifyOTP);
+router.post('/reset-password', resetPasswordValidators, resetPassword);
 
 export default router;

@@ -1,22 +1,61 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Calendar, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Calendar, Users, Award, TrendingUp, CheckCircle, Clock, XCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { getSystemSettings } from '@/lib/settings'
 
 export default function TrainerHistory() {
   const [assessments, setAssessments] = useState<any[]>([])
+  const [evaluations, setEvaluations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState<any>({})
 
   // Load trainer's assessment history on component mount
   useEffect(() => {
     loadAssessments()
   }, [])
 
-  // Fetch trainer's assessments from backend
+  // Fetch trainer's assessments and evaluations from backend
   const loadAssessments = async () => {
     try {
-      const result: any = await api.trainer.assessments()
-      setAssessments(result.data.assessments || [])
+      // Get system settings for passing criteria
+      const settings = await getSystemSettings()
+      setSettings(settings)
+      
+      const [assessmentsResult, evaluationsResult]: any[] = await Promise.all([
+        api.trainer.assessments(),
+        api.get('/public/evaluations') // Use public evaluations endpoint
+      ])
+      
+      const assessmentsData = assessmentsResult.data.assessments || []
+      const evaluationsData = evaluationsResult.data || []
+      
+      // Attach evaluations to assessments
+      const assessmentsWithEvaluations = assessmentsData.map((assessment: any) => {
+        const schoolOpsEval = evaluationsData.find(
+          (e: any) => e.assessment_id === assessment.id && e.evaluator_role === 'school_ops_manager'
+        )
+        const managerEval = evaluationsData.find(
+          (e: any) => e.assessment_id === assessment.id && e.evaluator_role === 'manager'
+        )
+        
+        const schoolOpsScore = schoolOpsEval?.totalScore || 0
+        const managerScore = managerEval?.totalScore || 0
+        const combinedScore = schoolOpsScore + managerScore
+        const percentage = combinedScore > 0 ? Math.round((combinedScore / settings.totalMarks) * 100) : 0
+        
+        return {
+          ...assessment,
+          schoolOpsEvaluation: schoolOpsEval,
+          managerEvaluation: managerEval,
+          combinedScore,
+          percentage,
+          hasEvaluations: !!(schoolOpsEval || managerEval)
+        }
+      })
+      
+      setAssessments(assessmentsWithEvaluations)
+      setEvaluations(evaluationsData)
       setLoading(false)
     } catch (error) {
       console.error('Failed to load assessments:', error)
@@ -69,21 +108,24 @@ export default function TrainerHistory() {
                       Scheduled
                     </span>
                   )}
-                  {assessment.status === 'Completed' && assessment.clear_status === 'Pass' && (
-                    <span className="badge-green flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Passed
-                    </span>
+                  {assessment.status === 'Completed' && assessment.hasEvaluations && (
+                    <>
+                      {assessment.percentage >= settings.passingPercentage ? (
+                        <span className="badge-green flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Passed
+                        </span>
+                      ) : (
+                        <span className="badge-red flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          Failed
+                        </span>
+                      )}
+                    </>
                   )}
-                  {assessment.status === 'Completed' && assessment.clear_status === 'Fail' && (
-                    <span className="badge-red flex items-center gap-1">
-                      <XCircle className="w-3 h-3" />
-                      Failed
-                    </span>
-                  )}
-                  {assessment.status === 'Completed' && !assessment.clear_status && (
+                  {assessment.status === 'Completed' && !assessment.hasEvaluations && (
                     <span className="badge bg-blue-100 text-blue-700">
-                      Awaiting Feedback
+                      Awaiting Evaluation
                     </span>
                   )}
                 </div>
@@ -96,17 +138,109 @@ export default function TrainerHistory() {
                     📅 {new Date(assessment.scheduled_date).toLocaleDateString()} at {new Date(assessment.scheduled_date).toLocaleTimeString()}
                   </p>
                 </div>
-                {assessment.score !== null && (
+                {assessment.hasEvaluations && (
                   <div>
-                    <p className="text-xs text-slate-500 mb-1">Score</p>
+                    <p className="text-xs text-slate-500 mb-1">Combined Score</p>
                     <p className="text-sm font-medium">
-                      🎯 {assessment.score}/100
+                      🎯 {assessment.percentage}% ({assessment.combinedScore}/{settings.totalMarks})
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Manager Feedback Section */}
+              {/* Evaluation Breakdown */}
+              {assessment.hasEvaluations && (
+                <div className="space-y-3 mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                  {/* Combined Score Banner */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">Final Combined Score</span>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                          {assessment.combinedScore}/{settings.totalMarks}
+                        </span>
+                        <span className="ml-2 text-sm font-medium text-purple-600 dark:text-purple-400">
+                          ({assessment.percentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* School Ops Manager Evaluation */}
+                  {assessment.schoolOpsEvaluation && (
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-green-800 dark:text-green-200">School Ops Manager</span>
+                        <span className="font-semibold text-green-600 dark:text-green-400">
+                          {assessment.schoolOpsEvaluation.totalScore}/25
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Time Activity:</span>
+                          <span className="font-medium">{assessment.schoolOpsEvaluation.timeBasedActivity}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Student Ideas:</span>
+                          <span className="font-medium">{assessment.schoolOpsEvaluation.studentEngagementIdeas}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Poised:</span>
+                          <span className="font-medium">{assessment.schoolOpsEvaluation.poisedAndConfident}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Voice:</span>
+                          <span className="font-medium">{assessment.schoolOpsEvaluation.wellModulatedVoice}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Look:</span>
+                          <span className="font-medium">{assessment.schoolOpsEvaluation.pleasingLook}/5</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manager Evaluation */}
+                  {assessment.managerEvaluation && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-blue-800 dark:text-blue-200">Manager</span>
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          {assessment.managerEvaluation.totalScore}/35
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">STEM Knowledge:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.hasKnowledgeOfSTEM}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">STEM Integration:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.abilityToIntegrateSTEM}/10</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Up-to-date:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.discussesUpToDateInfo}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Course Outline:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.provideCourseOutline}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Language:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.languageFluency}/5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Preparation:</span>
+                          <span className="font-medium">{assessment.managerEvaluation.preparationWithLessonPlan}/5</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Legacy Feedback Display */}
               {assessment.feedback && (
                 <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                   <p className="text-xs text-slate-500 mb-2">Manager Feedback</p>

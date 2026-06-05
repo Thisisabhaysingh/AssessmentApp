@@ -16,7 +16,10 @@ import {
   getAllCourses,
   getAllTrainers,
   getAllManagers,
-  getAllAssessments
+  getAllSchoolOpsManagers,
+  getAllAssessments,
+  getSettings,
+  updateSettings
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -42,9 +45,10 @@ router.delete('/assessments/:id', authenticate, permit('admin'), deleteAssessmen
 // Other routes
 router.get('/trainers', authenticate, permit('admin', 'manager'), getAllTrainers);
 router.get('/managers', authenticate, permit('admin', 'manager'), getAllManagers);
+router.get('/school-ops-managers', authenticate, permit('admin', 'manager'), getAllSchoolOpsManagers);
 router.post('/assign-course', authenticate, permit('admin'), assignCourse);
 router.get('/overview', authenticate, permit('admin'), overview);
-// router.get('/settings', authenticate, permit('admin'), getSettings);
-// router.put('/settings', authenticate, permit('admin'), updateSettings);
+router.get('/settings', authenticate, permit('admin'), getSettings);
+router.put('/settings', authenticate, permit('admin'), updateSettings);
 
 export default router;

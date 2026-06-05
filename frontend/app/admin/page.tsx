@@ -48,16 +48,18 @@ export default function AdminDashboard() {
       const courses = coursesRes.data.courses || []
       const assessments = assessmentsRes.data.assessments || []
       
-      const completed = assessments.filter((a: any) => a.status === 'Completed').length
-      const trainers = users.filter((u: any) => u.role === 'trainer').length
-      const managers = users.filter((u: any) => u.role === 'manager').length
-      const admins = users.filter((u: any) => u.role === 'admin').length
+      // Filter only active users for role counts
+      const activeUsers = users.filter((u: any) => u.status === 'active')
+      
+      const trainers = activeUsers.filter((u: any) => u.role === 'trainer').length
+      const managers = activeUsers.filter((u: any) => u.role === 'manager').length
+      const admins = activeUsers.filter((u: any) => u.role === 'admin').length
 
       setStats({
-        users: users.length,
+        users: users.length, // Total users count (not just active)
         courses: courses.length,
         assessments: assessments.length,
-        completedAssessments: completed,
+        completedAssessments: assessments.filter((a: any) => a.status === 'Completed').length,
         trainers,
         managers,
         admins
@@ -71,9 +73,9 @@ export default function AdminDashboard() {
 
       // Generate recent activities from real assessment data
       const activities = assessments
-        .sort((a, b) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
+        .sort((a: any, b: any) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime())
         .slice(0, 4)
-        .map(assessment => {
+        .map((assessment: any) => {
           const userName = assessment.trainer?.name || 'Unknown User'
           const nameParts = userName.split(' ')
           const initials = nameParts.length >= 2 

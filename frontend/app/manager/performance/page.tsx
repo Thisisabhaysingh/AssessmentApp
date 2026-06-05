@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Download, Users, TrendingUp, Award } from 'lucide-react'
 import StatCard from '@/components/StatCard'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -14,9 +15,15 @@ const performanceTrends = [
 ]
 
 export default function TrainerPerformance() {
+  const router = useRouter()
   const [trainers, setTrainers] = useState<any[]>([])
   const [trainersWithStats, setTrainersWithStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleViewDetails = (trainerId: number) => {
+    // Navigate to trainer details page or trainer profile
+    router.push(`/manager/trainers/${trainerId}`)
+  }
 
   useEffect(() => {
     loadTrainers()
@@ -189,14 +196,18 @@ export default function TrainerPerformance() {
               <div className="mb-4">
                 <p className="text-xs text-slate-500 mb-2">Courses</p>
                 <div className="flex flex-wrap gap-2">
-                  {trainer.courses.length > 0 ? (
-                    trainer.courses.map((course: string, idx: number) => (
-                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                        {course}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-slate-500">No courses</span>
+                  {trainer.courses.slice(0, 2).map((course: string, idx: number) => (
+                    <span key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm">
+                      {course}
+                    </span>
+                  ))}
+                  {trainer.courses.length > 2 && (
+                    <button 
+                      onClick={() => handleViewDetails(trainer.id)}
+                      className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm cursor-pointer hover:underline transition-colors"
+                    >
+                      +{trainer.courses.length - 2} more
+                    </button>
                   )}
                 </div>
               </div>
@@ -206,7 +217,10 @@ export default function TrainerPerformance() {
                 <p className="text-sm text-slate-700 italic">{trainer.recentFeedback}</p>
               </div>
 
-              <button className="w-full py-2 border border-slate-300 rounded-md text-sm hover:bg-slate-50">
+              <button 
+                onClick={() => handleViewDetails(trainer.id)}
+                className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors hover:text-black dark:hover:text-white"
+              >
                 View Details
               </button>
             </div>

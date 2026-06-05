@@ -4,10 +4,10 @@ dotenv.config();
 export const env = {
   PORT: process.env.PORT || 4000,
   NODE_ENV: process.env.NODE_ENV || 'development',
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'https://restored-inspection-endif-profiles.trycloudflare.com',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
   JWT_SECRET: process.env.JWT_SECRET || 'devsecret',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1d',
-  COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
+  COOKIE_SECURE: process.env.COOKIE_SECURE === 'true' || false,
   COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || 'lax',
   DB: {
     HOST: process.env.DB_HOST || 'localhost',

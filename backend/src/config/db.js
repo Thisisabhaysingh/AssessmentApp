@@ -17,37 +17,58 @@ db.sequelize = sequelize;
 // Models
 import UserModel from '../models/User.js';
 import CourseModel from '../models/Course.js';
+import ActivityModel from '../models/Activity.js';
 import AssessmentModel from '../models/Assessment.js';
 import FeedbackModel from '../models/Feedback.js';
 import TrainerCourseAssignmentModel from '../models/TrainerCourseAssignment.js';
 import CertificateModel from '../models/Certificate.js';
 import CertificateTemplateModel from '../models/CertificateTemplate.js';
+import AssessmentManagerModel from '../models/AssessmentManager.js';
+import EvaluationModel from '../models/Evaluation.js';
+import SystemSettingsModel from '../models/SystemSettings.js';
+import TrainerLevelQualificationsModel from '../models/TrainerLevelQualifications.js';
 
 const User = UserModel(sequelize);
 const Course = CourseModel(sequelize);
+const Activity = ActivityModel(sequelize);
 const Assessment = AssessmentModel(sequelize);
 const Feedback = FeedbackModel(sequelize);
 const TrainerCourseAssignment = TrainerCourseAssignmentModel(sequelize);
 const Certificate = CertificateModel(sequelize);
 const CertificateTemplate = CertificateTemplateModel(sequelize);
-
-// Simple SystemSettings object for now (no database persistence)
-const SystemSettings = {
-  findOne: async () => ({ passwordMinLength: 6, emailNotifications: true, autoCertificateGeneration: true }),
-  create: async (data) => data,
-  update: async (data) => data
-};
+const AssessmentManager = AssessmentManagerModel(sequelize);
+const Evaluation = EvaluationModel(sequelize);
+const SystemSettings = SystemSettingsModel(sequelize);
+const TrainerLevelQualifications = TrainerLevelQualificationsModel(sequelize);
 
 // Associations
 User.hasMany(Assessment, { foreignKey: 'trainer_id', as: 'trainerAssessments' });
 Assessment.belongsTo(User, { foreignKey: 'trainer_id', as: 'trainer' });
 
-// Manager assignment for assessments
+// Manager assignment for assessments (legacy - keep for backward compatibility)
 User.hasMany(Assessment, { foreignKey: 'manager_id', as: 'managerAssessments' });
 Assessment.belongsTo(User, { foreignKey: 'manager_id', as: 'manager' });
 
+// Many-to-many relationship between assessments and managers
+Assessment.belongsToMany(User, { 
+  through: AssessmentManager, 
+  foreignKey: 'assessment_id', 
+  otherKey: 'manager_id', 
+  as: 'assignedManagers' 
+});
+User.belongsToMany(Assessment, { 
+  through: AssessmentManager, 
+  foreignKey: 'manager_id', 
+  otherKey: 'assessment_id', 
+  as: 'assignedAssessments' 
+});
+
 Course.hasMany(Assessment, { foreignKey: 'course_id', as: 'assessments' });
 Assessment.belongsTo(Course, { foreignKey: 'course_id', as: 'course' });
+
+// Course-Activity associations
+Course.hasMany(Activity, { foreignKey: 'courseId', as: 'activities' });
+Activity.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 
 Assessment.hasMany(Feedback, { foreignKey: 'assessment_id', as: 'feedbacks' });
 Feedback.belongsTo(Assessment, { foreignKey: 'assessment_id', as: 'assessment' });
@@ -68,4 +89,18 @@ Certificate.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 CertificateTemplate.hasMany(Certificate, { foreignKey: 'templateId', as: 'certificates' });
 Certificate.belongsTo(CertificateTemplate, { foreignKey: 'templateId', as: 'template' });
 
-export { User, Course, Assessment, Feedback, TrainerCourseAssignment, Certificate, CertificateTemplate, SystemSettings };
+// Evaluation associations
+Assessment.hasMany(Evaluation, { foreignKey: 'assessment_id', as: 'evaluations' });
+Evaluation.belongsTo(Assessment, { foreignKey: 'assessment_id', as: 'assessment' });
+
+User.hasMany(Evaluation, { foreignKey: 'evaluator_id', as: 'evaluations' });
+Evaluation.belongsTo(User, { foreignKey: 'evaluator_id', as: 'evaluator' });
+
+// Trainer Level Qualifications associations
+User.hasMany(TrainerLevelQualifications, { foreignKey: 'trainerId', as: 'levelQualifications' });
+TrainerLevelQualifications.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+Assessment.hasMany(TrainerLevelQualifications, { foreignKey: 'assessmentId', as: 'levelQualifications' });
+TrainerLevelQualifications.belongsTo(Assessment, { foreignKey: 'assessmentId', as: 'assessment' });
+
+export { User, Course, Activity, Assessment, Feedback, TrainerCourseAssignment, Certificate, CertificateTemplate, AssessmentManager, Evaluation, SystemSettings, TrainerLevelQualifications };

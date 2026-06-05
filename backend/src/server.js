@@ -10,8 +10,15 @@ import bcrypt from 'bcryptjs';
 import authRoutes from './routes/authRoutes.js';
 import trainerRoutes from './routes/trainerRoutes.js';
 import managerRoutes from './routes/managerRoutes.js';
+import schoolOpsManagerRoutes from './routes/schoolOpsManagerRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import certificateRoutes from './routes/certificateRoutes.js';
+import activityRoutes from './routes/activityRoutes.js';
+import publicRoutes from './routes/publicRoutes.js';
+import trainerLevelRoutes from './routes/trainerLevelRoutes.js';
+import certificateGenerationRoutes from './routes/certificateGenerationRoutes.js';
+import trainerSettingsRoutes from './routes/trainerSettingsRoutes.js';
+import trashRoutes from './routes/trashRoutes.js';
 // import userRoutes from './routes/userRoutes.js';
 
 const app = express();
@@ -25,16 +32,29 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/trainer', trainerRoutes);
 app.use('/api/manager', managerRoutes);
+app.use('/api/school-ops-manager', schoolOpsManagerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/activities', activityRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/trainer-level', trainerLevelRoutes);
+app.use('/api/trainer-settings', trainerSettingsRoutes);
+app.use('/api/certificate-generation', certificateGenerationRoutes);
+app.use('/api/trash', trashRoutes);
 // app.use('/api/users', userRoutes);
 
 console.log('🚀 API Routes mounted:');
 console.log('  - /api/auth/*');
 console.log('  - /api/trainer/*');
 console.log('  - /api/manager/*');
+console.log('  - /api/school-ops-manager/*');
 console.log('  - /api/admin/*');
 console.log('  - /api/certificates/*');
+console.log('  - /api/activities/*');
+console.log('  - /api/public/*');
+console.log('  - /api/trainer-level/*');
+console.log('  - /api/certificate-generation/*');
+console.log('  - /api/trash/*');
 
 const start = async () => {
   try {
@@ -50,7 +70,8 @@ const start = async () => {
       const pwd = await bcrypt.hash('password123', 10);
       await User.bulkCreate([
         { name: 'Admin User', email: 'admin@example.com', password: pwd, role: 'admin', department: 'HQ', designation: 'Administrator' },
-        { name: 'Manager Mary', email: 'manager@example.com', password: pwd, role: 'manager', department: 'QA', designation: 'Manager' },
+        { name: 'Manager Mary', email: 'manager@example.com', password: pwd, role: 'manager', department: 'QA', designation: 'Technical Manager' },
+        { name: 'School Ops Sarah', email: 'schoolops@example.com', password: pwd, role: 'school_ops_manager', department: 'Operations', designation: 'School Operations Manager' },
         { name: 'Trainer Tom', email: 'trainer@example.com', password: pwd, role: 'trainer', department: 'QA', designation: 'Senior Trainer' },
       ]);
       console.log('Seeded default users (password: password123)');

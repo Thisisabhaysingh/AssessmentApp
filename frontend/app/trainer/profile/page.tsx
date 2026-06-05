@@ -112,7 +112,7 @@ export default function TrainerProfile() {
         {/* Statistics Overview - Enhanced Dark Mode */}
         <div className="lg:col-span-2 container-card p-6">
           <h2 className="text-lg font-semibold mb-4 dark:text-white">Statistics Overview</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ">
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30 shadow-sm">
               <Award className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
               <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{stats.totalAssessments}</p>

@@ -10,6 +10,11 @@ export default (sequelize) => {
     status: { type: DataTypes.ENUM('Scheduled', 'Completed'), defaultValue: 'Scheduled' },
     score: { type: DataTypes.FLOAT, allowNull: true },
     clear_status: { type: DataTypes.ENUM('Pass', 'Fail'), allowNull: true }, // Pass/Fail status
+    deletedAt: { 
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Soft delete timestamp - null if not deleted'
+    }
   }, { tableName: 'assessments' });
 
   return Assessment;

@@ -11,6 +11,10 @@ body{ @apply bg-slate-50 text-slate-800; }
 .dark{ color-scheme: dark; }
 .dark body{ @apply bg-slate-900 text-slate-100; }
 .dark .container-card{ @apply bg-slate-800 border-slate-700 text-slate-100; }
+.dark .bg-card{ @apply bg-slate-800 !important; }
+.dark .text-card-foreground{ @apply text-slate-100 !important; }
+.dark .bg-muted{ @apply bg-slate-700 !important; }
+.dark .text-muted-foreground{ @apply text-slate-400 !important; }
 .dark .sidebar{ @apply bg-slate-800 border-slate-700; }
 .dark .sidebar-link{ @apply hover:bg-slate-700; }
 .dark input, .dark select, .dark textarea{ @apply bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400; }

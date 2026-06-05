@@ -1,4 +1,4 @@
-import { Assessment, Course, Feedback, User, Certificate, CertificateTemplate } from '../config/db.js';
+import { Assessment, Course, Feedback, User, Certificate, CertificateTemplate, Evaluation } from '../config/db.js';
 import { ok, bad } from '../utils/responseHelper.js';
 import { generateCertificatePdf } from '../services/certificateService.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,12 +29,16 @@ export const getAssessments = async (req, res) => {
           ]
         }
       ],
-      order: [['scheduled_date', 'DESC']]
+      order: [
+        ['scheduled_date', 'DESC'],
+        [{ model: Feedback, as: 'feedbacks' }, 'created_at', 'DESC']
+      ]
     });
     
     // Transform to include single feedback object instead of array
     const transformedAssessments = assessments.map(assessment => {
       const assessmentData = assessment.toJSON();
+      // Get the latest feedback (most recent) instead of the first one
       assessmentData.feedback = assessmentData.feedbacks?.[0] || null;
       delete assessmentData.feedbacks;
       return assessmentData;
@@ -178,6 +182,52 @@ export const updateAssessmentStatus = async (req, res) => {
     return ok(res, { assessment: updatedAssessment }, 'Assessment updated successfully');
   } catch (error) {
     console.error('Error updating assessment:', error);
+    return bad(res, error.message, 500);
+  }
+};
+
+// Get trainer's evaluations
+export const getEvaluations = async (req, res) => {
+  try {
+    const trainerId = req.user.id; // Get logged-in trainer's ID
+    
+    // First get trainer's assessments
+    const trainerAssessments = await Assessment.findAll({
+      where: { trainer_id: trainerId },
+      attributes: ['id']
+    });
+    
+    const assessmentIds = trainerAssessments.map(a => a.id);
+    
+    // Get evaluations for trainer's assessments
+    const evaluations = await Evaluation.findAll({
+      where: {
+        assessment_id: assessmentIds
+      },
+      include: [
+        {
+          model: User,
+          as: 'evaluator',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Assessment,
+          as: 'assessment',
+          include: [
+            {
+              model: Course,
+              as: 'course',
+              attributes: ['id', 'name']
+            }
+          ]
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+    
+    return ok(res, evaluations, 'Evaluations retrieved successfully');
+  } catch (error) {
+    console.error('Error getting evaluations:', error);
     return bad(res, error.message, 500);
   }
 };

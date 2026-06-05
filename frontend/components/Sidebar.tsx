@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { User, LayoutDashboard, Calendar, Users, BookOpen, Settings, UserCircle, Moon, Sun, Award } from 'lucide-react'
+import { User, LayoutDashboard, Calendar, Users, BookOpen, Settings, UserCircle, Moon, Sun, Award, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { api } from '@/lib/api'
 
 interface SidebarProps {
-  role: 'trainer' | 'manager' | 'admin'
+  role: 'trainer' | 'manager' | 'school-ops-manager' | 'admin'
   userName: string
   isOpen?: boolean
   onClose?: () => void
@@ -28,12 +28,21 @@ const roleLinks = {
     { href: '/manager/certificates', label: 'Certificates', icon: Award },
     { href: '/manager/profile', label: 'Profile', icon: UserCircle },
   ],
+  school_ops_manager: [
+    { href: '/school-ops-manager', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/school-ops-manager/trainers', label: 'Trainer Management', icon: Users },
+    { href: '/school-ops-manager/assessments', label: 'Assessment Scheduling', icon: Calendar },
+    { href: '/school-ops-manager/feedback', label: 'Feedback Management', icon: BookOpen },
+    { href: '/school-ops-manager/performance', label: 'Performance Reports', icon: Calendar },
+    { href: '/school-ops-manager/profile', label: 'Profile', icon: UserCircle },
+  ],
   admin: [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/scheduler', label: 'Assessment Scheduler', icon: Calendar },
     { href: '/admin/users', label: 'User Management', icon: Users },
     { href: '/admin/courses', label: 'Course Management', icon: BookOpen },
     { href: '/admin/certificates', label: 'Certificates', icon: Award },
+    { href: '/admin/trash', label: 'Trash', icon: Trash2 },
     { href: '/admin/settings', label: 'System Settings', icon: Settings },
     { href: '/admin/profile', label: 'Profile', icon: UserCircle },
   ],

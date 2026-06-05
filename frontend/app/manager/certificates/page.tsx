@@ -70,15 +70,8 @@ export default function ManagerCertificatesPage() {
 
   const handleDownload = async (certificate: Certificate) => {
     try {
-      const blob = await certificateApi.downloadCertificate(certificate.id);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `certificate-${certificate.certificateNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+      await certificateApi.downloadCertificate(certificate.id);
+      toast.success('Certificate downloaded successfully');
     } catch (error) {
       console.error('Error downloading certificate:', error);
       toast.error('Failed to download certificate');
@@ -94,7 +87,7 @@ export default function ManagerCertificatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h1 className="text-2xl font-bold">Certificate Management</h1>
         <Button onClick={() => router.push('/manager/certificates/issue')}>

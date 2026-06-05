@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
-import { ok, bad, notFound, serverError } from '../utils/responseHelper.js';
+import { ok, bad, notFound, serverError, created } from '../utils/responseHelper.js';
 import { v4 as uuidv4 } from 'uuid';
 import { Certificate, CertificateTemplate, User, Course } from '../config/db.js';
 import { uploadFile, deleteFile } from '../utils/fileUpload.js';
@@ -215,9 +215,11 @@ const convertHtmlToPdf = async (htmlPath, outputPath) => {
 export const issueCertificate = async (req, res) => {
   try {
     const { userId, courseId, templateId, expiryDate, metadata } = req.body;
+    console.log('Certificate issue request:', { userId, courseId, templateId, expiryDate, metadata });
     
     // Find the template
     const template = await CertificateTemplate.findByPk(templateId);
+    console.log('Template found:', template);
     if (!template) {
       return bad(res, 'Certificate template not found', 404);
     }
@@ -250,6 +252,13 @@ export const issueCertificate = async (req, res) => {
     };
 
     // Generate PDF
+    console.log('🎨 Generating PDF with template:', template);
+    console.log('📄 Template details:', {
+      id: template.id,
+      name: template.name,
+      templateFile: template.templateFile
+    });
+    
     const pdfPath = await generateCertificatePdf({
       user,
       course,
@@ -258,6 +267,8 @@ export const issueCertificate = async (req, res) => {
       issueDate: certificateData.issueDate,
       expiryDate: certificateData.expiryDate
     });
+    
+    console.log('✅ PDF generated at:', pdfPath);
 
     // Save file path
     certificateData.filePath = pdfPath;
@@ -342,7 +353,22 @@ export const downloadCertificate = async (req, res) => {
     const { id } = req.params;
     console.log(`📥 Download request for certificate ID: ${id}`);
 
-    const certificate = await Certificate.findByPk(id);
+    const certificate = await Certificate.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Course,
+          as: 'course',
+          attributes: ['id', 'name'],
+          required: false
+        }
+      ]
+    });
+    
     console.log(`📄 Certificate found:`, {
       id: certificate?.id,
       certificateNumber: certificate?.certificateNumber,
@@ -355,20 +381,80 @@ export const downloadCertificate = async (req, res) => {
       return notFound(res, 'Certificate not found');
     }
 
-    if (!certificate.filePath) {
-      console.log(`❌ Certificate ${id} has no file path`);
-      return notFound(res, 'Certificate file not found');
+    let filePath = certificate.filePath;
+
+    // If no file exists, generate it on-demand
+    if (!filePath) {
+      console.log(`🎨 Certificate ${id} has no file, generating on-demand...`);
+      
+      try {
+        const certificateData = {
+          userId: certificate.userId,
+          courseId: certificate.courseId,
+          templateId: certificate.templateId,
+          certificateNumber: certificate.certificateNumber,
+          issueDate: certificate.issueDate,
+          metadata: certificate.metadata
+        };
+
+        // Get template for certificate generation
+        const template = await CertificateTemplate.findByPk(certificate.templateId);
+        
+        // Generate PDF with correct parameters
+        const certificatePdf = await generateCertificatePdf({
+          user: certificate.user,
+          course: certificate.course,
+          template: template,
+          certificateNumber: certificate.certificateNumber,
+          issueDate: certificate.issueDate,
+          expiryDate: certificate.expiryDate
+        });
+        
+        if (certificatePdf && certificatePdf.filePath) {
+          // Update certificate with file path
+          await certificate.update({
+            filePath: certificatePdf.filePath
+          });
+          
+          filePath = certificatePdf.filePath;
+          console.log(`✅ PDF generated on-demand for certificate ${certificate.id}: ${filePath}`);
+        } else {
+          console.log(`⚠️ PDF generation failed for certificate ${certificate.id}, creating placeholder`);
+          
+          // Create a simple placeholder PDF if generation fails
+          const placeholderPath = await createPlaceholderPDF(certificate);
+          if (placeholderPath) {
+            await certificate.update({
+              filePath: placeholderPath
+            });
+            filePath = placeholderPath;
+          }
+        }
+      } catch (pdfError) {
+        console.error(`❌ Error generating PDF for certificate ${certificate.id}:`, pdfError);
+        
+        // Create placeholder as fallback
+        const placeholderPath = await createPlaceholderPDF(certificate);
+        if (placeholderPath) {
+          await certificate.update({
+            filePath: placeholderPath
+          });
+          filePath = placeholderPath;
+        } else {
+          return notFound(res, 'Certificate file not found and could not be generated');
+        }
+      }
     }
 
-    const filePath = path.join(__dirname, '..', '..', certificate.filePath);
-    console.log(`📁 Looking for file at: ${filePath}`);
+    const fullFilePath = path.join(__dirname, '..', '..', filePath);
+    console.log(`📁 Looking for file at: ${fullFilePath}`);
 
-    if (!fs.existsSync(filePath)) {
-      console.log(`❌ File does not exist: ${filePath}`);
+    if (!fs.existsSync(fullFilePath)) {
+      console.log(`❌ File does not exist: ${fullFilePath}`);
       return notFound(res, 'Certificate file not found on server');
     }
 
-    const fileExtension = path.extname(certificate.filePath).toLowerCase();
+    const fileExtension = path.extname(filePath).toLowerCase();
     const originalMimeType = certificate.metadata?.mimeType || '';
 
     console.log(`📄 File extension: ${fileExtension}`);
@@ -744,5 +830,66 @@ export const uploadExternalCertificate = async (userId, file) => {
   console.log(`🎉 Certificate created: ID ${certificate.id}, Number: ${certificate.certificateNumber}`);
 
   return certificate;
+};
+
+// Create placeholder PDF when certificate generation fails
+const createPlaceholderPDF = async (certificate) => {
+  try {
+    // Use existing imports (ES modules don't support require)
+    
+    // Create certificates directory if it doesn't exist
+    const certificatesDir = path.join(__dirname, '..', '..', 'certificates');
+    if (!fs.existsSync(certificatesDir)) {
+      fs.mkdirSync(certificatesDir, { recursive: true });
+    }
+    
+    // Generate filename
+    const filename = `certificate-${certificate.id}-${Date.now()}.pdf`;
+    const filePath = path.join('certificates', filename);
+    const fullPath = path.join(__dirname, '..', '..', filePath);
+    
+    // Create a simple PDF
+    const doc = new PDFDocument();
+    doc.pipe(fs.createWriteStream(fullPath));
+    
+    // Add certificate content
+    doc.fontSize(20)
+       .text('Certificate of Completion', { align: 'center' })
+       .moveDown();
+    
+    doc.fontSize(16)
+       .text(`Certificate Number: ${certificate.certificateNumber}`, { align: 'center' })
+       .moveDown();
+    
+    doc.fontSize(14)
+       .text(`This is to certify that`, { align: 'center' })
+       .moveDown();
+    
+    doc.fontSize(18)
+       .text(certificate.user?.name || 'Trainer', { align: 'center' })
+       .moveDown();
+    
+    doc.fontSize(14)
+       .text('has successfully completed the requirements', { align: 'center' })
+       .moveDown();
+    
+    if (certificate.course) {
+      doc.fontSize(16)
+         .text(certificate.course.name, { align: 'center' })
+         .moveDown();
+    }
+    
+    doc.fontSize(14)
+       .text(`Issued on: ${new Date(certificate.issueDate).toLocaleDateString()}`, { align: 'center' });
+    
+    doc.end();
+    
+    console.log(`📄 Placeholder PDF created: ${filePath}`);
+    return filePath;
+    
+  } catch (error) {
+    console.error('❌ Error creating placeholder PDF:', error);
+    return null;
+  }
 };
 
